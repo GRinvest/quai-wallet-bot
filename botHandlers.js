@@ -160,12 +160,12 @@ export function setupBotHandlers(bot, provider) {
   bot.action("confirm_send", async (ctx) => {
     const userId = ctx.from.id;
     const { steps, language } = ctx.state.user;
-
+  
     if (!steps || steps.step !== "confirm") return;
-
+  
     const { address, amount } = steps;
     await deleteUserState(userId);
-
+  
     try {
       const encryptedKey = await redis.get(`user:${ctx.from.id}:privkey`);
       if (!encryptedKey) {
@@ -178,16 +178,16 @@ export function setupBotHandlers(bot, provider) {
         );
       }
       let privkey = decrypt(encryptedKey);
-
+  
       const wallet = new quais.Wallet(privkey, provider);
       privkey = null;
       const from = await wallet.getAddress();
-
+  
       // Check for pending transactions
       const lastTxHash = await redis.get(`user:${ctx.from.id}:lastTxHash`);
       if (lastTxHash) {
         try {
-          await ensureTransactionProcessed(lastTxHash, provider);
+          await ensureTransactionProcessed(lastTxHash, provider, language); // Pass language here
         } catch (error) {
           return sendAndDeletePreviousMessage(
             ctx,
@@ -198,13 +198,13 @@ export function setupBotHandlers(bot, provider) {
           );
         }
       }
-
+  
       const balance = await provider.getBalance(from, "latest");
       const feeData = await provider.getFeeData(quais.Shard.Cyprus1);
       const gasPrice = feeData.gasPrice;
       const gasLimit = 100000n;
       const gasCost = gasPrice * gasLimit;
-
+  
       if (balance <= gasCost) {
         return sendAndDeletePreviousMessage(
           ctx,
@@ -214,7 +214,7 @@ export function setupBotHandlers(bot, provider) {
           ])
         );
       }
-
+  
       let valueToSend;
       if (amount.toLowerCase() === "all") {
         valueToSend = balance - gasCost;
@@ -231,23 +231,23 @@ export function setupBotHandlers(bot, provider) {
         }
         valueToSend = parsedAmount;
       }
-
+  
       const txData = {
         from,
         to: address,
         value: valueToSend,
       };
-
+  
       const tx = await wallet.sendTransaction(txData);
-
+  
       // Save the new transaction hash
       await redis.set(`user:${ctx.from.id}:lastTxHash`, tx.hash);
-
+  
       // Send message with hash and wait for confirmation
       const sentMessage = await ctx.replyWithMarkdown(
         t(language, "transaction_sent", { hash: tx.hash })
       );
-
+  
       try {
         // Wait for confirmation
         const txReceipt = await Promise.race([
@@ -256,7 +256,7 @@ export function setupBotHandlers(bot, provider) {
             setTimeout(() => reject(new Error("TimeoutError")), 80000)
           ),
         ]);
-
+  
         // Edit the previously sent message
         await ctx.telegram.editMessageText(
           ctx.chat.id,
@@ -279,15 +279,17 @@ export function setupBotHandlers(bot, provider) {
             { parse_mode: "Markdown" }
           );
         } else {
-          throw error;
+          // If other errors occur, send error message in user's language
+          await ctx.reply(t(language, "transaction_error", { error: error.message }));
         }
       }
-
+  
       await sendMainMenu(ctx);
     } catch (error) {
       await ctx.reply(t(language, "transaction_error", { error: error.message }));
     }
   });
+  
 
   bot.action("receive", async (ctx) => {
     try {
@@ -436,13 +438,14 @@ async function sendAndDeletePreviousMessage(ctx, text, keyboard = null, edit = f
   }
 }
 
-async function ensureTransactionProcessed(txHash, provider) {
-  const receipt = await provider.getTransactionReceipt(txHash);
-  if (!receipt) {
-    throw new Error(t("en", "previous_transaction_pending"));
+async function ensureTransactionProcessed(txHash, provider, language) {
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (!receipt) {
+      throw new Error(t(language, "previous_transaction_pending"));
+    }
+    if (receipt.status === 0) {
+      throw new Error(t(language, "previous_transaction_failed"));
+    }
+    return receipt;
   }
-  if (receipt.status === 0) {
-    throw new Error(t("en", "previous_transaction_failed"));
-  }
-  return receipt;
-}
+  

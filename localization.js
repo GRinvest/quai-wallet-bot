@@ -19,12 +19,14 @@ const messages = {
     back: "⬅️ Back",
     to_main_menu: "⬅️ To Main Menu",
     transaction_sent:
-      "✈️ Transaction sent.\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ Waiting for confirmation...",
+    "✈️ Transaction sent.\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ Waiting for confirmation...",
     transaction_confirmed:
-      "🎉 You have successfully sent: {amount} QUAI to address {address}\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ Transaction confirmed.",
+    "🎉 You have successfully sent: {amount} QUAI to address {address}\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ Transaction confirmed.",
     transaction_timeout:
       "⚠️ Confirmation timeout. Please check the transaction status manually:\n\n🔗 [Check Transaction](https://quaiscan.io/tx/{hash})",
     transaction_error: "Error sending transaction: {error}",
+    previous_transaction_pending: "The previous transaction is still pending. Please wait until it is confirmed.",
+    previous_transaction_failed: "The previous transaction failed.",
     no_private_key:
       "Your private key was not found. Please save it using the /savekey command.",
     private_key_saved: "Your key has been saved. Address: {address}",
@@ -60,12 +62,14 @@ const messages = {
     back: "⬅️ Назад",
     to_main_menu: "⬅️ В главное меню",
     transaction_sent:
-      "✈️ Транзакция отправлена.\n\n🔗 Txid: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ Ожидание подтверждения...",
+      "✈️ Транзакция отправлена.\n\n🔗 Хэш: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ Ожидание подтверждения...",
     transaction_confirmed:
-      "🎉 Вы успешно отправили: {amount} QUAI на адрес {address}\n\n🔗 Txid: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ Транзакция подтверждена.",
+      "🎉 Вы успешно отправили: {amount} QUAI на адрес {address}\n\n🔗 Хэш: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ Транзакция подтверждена.",
     transaction_timeout:
       "⚠️ Время ожидания подтверждения истекло. Пожалуйста, проверьте статус транзакции вручную:\n\n🔗 [Проверить транзакцию](https://quaiscan.io/tx/{hash})",
     transaction_error: "Ошибка при отправке транзакции: {error}",
+    previous_transaction_pending: "Предыдущая транзакция все еще обрабатывается. Пожалуйста, дождитесь ее подтверждения.",
+    previous_transaction_failed: "Предыдущая транзакция не удалась.",
     no_private_key:
       "Ваш приватный ключ не найден. Пожалуйста, сохраните его с помощью команды /savekey.",
     private_key_saved: "Ваш ключ сохранен. Адрес: {address}",
@@ -102,12 +106,14 @@ zh: {
     back: "⬅️ 返回",
     to_main_menu: "⬅️ 返回主菜单",
     transaction_sent:
-      "✈️ 交易已发送。\n\n🔗 哈希: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ 正在等待确认...",
+      "✈️ 交易已发送。\n\n🔗 哈希：[{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ 等待确认...",
     transaction_confirmed:
-      "🎉 您已成功发送：{amount} QUAI 至地址 {address}\n\n🔗 哈希: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ 交易已确认。",
+      "🎉 您已成功发送：{amount} QUAI 到地址 {address}\n\n🔗 哈希：[{hash}](https://quaiscan.io/tx/{hash})\n\n✅ 交易已确认。",
     transaction_timeout:
       "⚠️ 确认超时。请手动检查交易状态：\n\n🔗 [检查交易](https://quaiscan.io/tx/{hash})",
     transaction_error: "发送交易时出错：{error}",
+    previous_transaction_pending: "上一笔交易仍在处理中。请等待确认。",
+    previous_transaction_failed: "上一笔交易失败。",
     no_private_key:
       "未找到您的私钥。请使用 /savekey 命令保存它。",
     private_key_saved: "您的密钥已保存。地址：{address}",
@@ -129,9 +135,10 @@ zh: {
 };
 
 export function t(language, key, params = {}) {
-  let msg = messages[language][key] || messages["en"][key] || key;
-  for (const [param, value] of Object.entries(params)) {
-    msg = msg.replace(`{${param}}`, value);
+    let msg = messages[language][key] || messages["en"][key] || key;
+    for (const [param, value] of Object.entries(params)) {
+      const regex = new RegExp(`{${param}}`, 'g'); // Global replacement
+      msg = msg.replace(regex, value);
+    }
+    return msg;
   }
-  return msg;
-}
