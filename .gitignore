@@ -1,0 +1,59 @@
+# Node.js core
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log.*
+
+# Test coverage
+coverage/
+*.lcov
+
+# Build output
+dist/
+build/
+.out/
+.next/
+out/
+target/
+release/
+bin/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# System files
+.DS_Store
+Thumbs.db
+*.iml
+
+# Optional npm cache directory
+.npm/
+
+# Docker-related
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+tmp/
+temp/
