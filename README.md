@@ -114,6 +114,7 @@ Ensure that you have set the WEBHOOK_URL in your .env file when running in produ
 - quais: Quai network library for blockchain interactions.
 - crypto: Node.js built-in module for cryptography.
 - nodemon: Development utility that monitors for changes and restarts your app.
+- Redis: Must be installed on the server separately.
 
 ## Contributing
 
