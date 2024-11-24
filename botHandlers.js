@@ -46,9 +46,6 @@ export function setupBotHandlers(bot, provider) {
     const userState = ctx.state.user;
     userState.language = languageCode;
     await saveUserState(userId, userState);
-    await ctx.editMessageText(
-      t(languageCode, "language_selected", { language: languageCode })
-    );
     await sendMainMenu(ctx, t(languageCode, "welcome"));
   });
 
