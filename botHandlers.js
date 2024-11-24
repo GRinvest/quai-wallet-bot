@@ -379,7 +379,7 @@ async function promptLanguageSelection(ctx) {
     [Markup.button.callback("中文", "language_zh")],
     [Markup.button.callback(t(language, "back"), "main_menu")],
   ]);
-  await ctx.reply(t(language, "select_language"), languageKeyboard);
+  await sendAndDeletePreviousMessage(ctx, t(language, "select_language"), languageKeyboard);
 }
 
 // Функция для отправки сообщения и удаления предыдущего
