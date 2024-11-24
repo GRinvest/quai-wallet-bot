@@ -123,12 +123,12 @@ export function setupBotHandlers(bot, provider) {
     } else if (steps.step === "save_key") {
       let privkey = ctx.message.text;
       try {
+        await ctx.deleteMessage(ctx.message.message_id);
         const wallet = new quais.Wallet(privkey, provider);
         const address = await wallet.getAddress();
         const encryptedKey = encrypt(privkey);
         privkey = null;
         await redis.set(`user:${ctx.from.id}:privkey`, encryptedKey);
-        await ctx.deleteMessage(ctx.message.message_id);
         await sendAndDeletePreviousMessage(
           ctx,
           t(language, "private_key_saved", { address }),
@@ -138,7 +138,13 @@ export function setupBotHandlers(bot, provider) {
         );
         await updateUserState(userId, { steps: null });
       } catch (error) {
-        await ctx.reply(t(language, "invalid_private_key"));
+        await sendAndDeletePreviousMessage(
+            ctx,
+            t(language, "invalid_private_key"),
+            Markup.inlineKeyboard([
+              Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
+            ])
+          );
       }
     }
   });
