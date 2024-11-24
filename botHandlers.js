@@ -106,7 +106,7 @@ export function setupBotHandlers(bot, provider) {
         amount_msg = parsedAmount.toString();
       } else {
         steps.amount = "all";
-        const balance = await provider.getBalance(from, "latest");
+        const balance = await provider.getBalance(steps.address, "latest");
         amount_msg = quais.formatQuai(balance).toString();
       }
 
