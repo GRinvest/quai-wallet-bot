@@ -46,7 +46,7 @@ const messages = {
     language_selected: "Language selected: {language}",
     select_language: "Please select your language:",
     invalid_private_key: "Invalid private key. Please try again.",
-    delete_key: "Delete Key",
+    delete_key: "🗑️ Delete Key",
     confirm_delete_key:
       "Are you sure you want to delete your private key associated with address {address}?",
     cancel: "❌ Cancel",
@@ -98,7 +98,7 @@ const messages = {
     select_language: "Пожалуйста, выберите ваш язык:",
     invalid_private_key:
       "Недействительный приватный ключ. Пожалуйста, попробуйте снова.",
-    delete_key: "Удалить ключ",
+      delete_key: "🗑️ Удалить ключ",
     confirm_delete_key:
       "Вы уверены, что хотите удалить приватный ключ, связанный с адресом {address}?",
     cancel: "❌ Отмена",
@@ -144,7 +144,7 @@ const messages = {
     language_selected: "已选择语言：{language}",
     select_language: "请选择您的语言：",
     invalid_private_key: "无效的私钥。请重试。",
-    delete_key: "删除密钥",
+    delete_key: "🗑️ 删除密钥",
     confirm_delete_key: "您确定要删除与地址 {address} 关联的私钥吗？",
     cancel: "❌ 取消",
     private_key_deleted: "您的私钥已被删除。",
