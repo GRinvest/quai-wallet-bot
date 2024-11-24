@@ -31,7 +31,7 @@ const messages = {
       "The previous transaction is still pending. Please wait until it is confirmed.",
     previous_transaction_failed: "The previous transaction failed.",
     no_private_key:
-      "Your private key was not found. Please save it using the /savekey command.",
+      "Your private key was not found.",
     private_key_saved: "Your key has been saved. Address: {address}",
     enter_private_key: "Please enter your Private Key:",
     balance_amount: "Your balance: {balance} QUAI",
@@ -82,7 +82,7 @@ const messages = {
       "Предыдущая транзакция все еще обрабатывается. Пожалуйста, дождитесь ее подтверждения.",
     previous_transaction_failed: "Предыдущая транзакция не удалась.",
     no_private_key:
-      "Ваш приватный ключ не найден. Пожалуйста, сохраните его с помощью команды /savekey.",
+      "Ваш приватный ключ не найден.",
     private_key_saved: "Ваш ключ сохранен. Адрес: {address}",
     enter_private_key: "Пожалуйста, введите ваш приватный ключ:",
     balance_amount: "Ваш баланс: {balance} QUAI",
@@ -131,7 +131,7 @@ const messages = {
     transaction_error: "发送交易时出错：{error}",
     previous_transaction_pending: "上一笔交易仍在处理中。请等待确认。",
     previous_transaction_failed: "上一笔交易失败。",
-    no_private_key: "未找到您的私钥。请使用 /savekey 命令保存它。",
+    no_private_key: "未找到您的私钥。",
     private_key_saved: "您的密钥已保存。地址：{address}",
     enter_private_key: "请输入您的私钥：",
     balance_amount: "您的余额：{balance} QUAI",
