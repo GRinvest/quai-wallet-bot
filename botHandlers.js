@@ -12,15 +12,17 @@ import { quais } from "quais";
 const redis = getRedisClient();
 
 export function setupBotHandlers(bot, provider) {
+  // Middleware для загрузки состояния пользователя
   bot.use(async (ctx, next) => {
     if (ctx.from) {
       const userId = ctx.from.id;
       const userState = await loadUserState(userId);
-      ctx.state.user = userState;
+      ctx.state.user = userState || {};
     }
     return next();
   });
 
+  // Команда /start
   bot.start(async (ctx) => {
     const userId = ctx.from.id;
     const userState = ctx.state.user;
@@ -32,10 +34,12 @@ export function setupBotHandlers(bot, provider) {
     }
   });
 
+  // Команда /language
   bot.command("language", async (ctx) => {
     await promptLanguageSelection(ctx);
   });
 
+  // Обработка выбора языка
   bot.action(/^language_(en|ru|zh)$/, async (ctx) => {
     const languageCode = ctx.match[0].split("_")[1];
     const userId = ctx.from.id;
@@ -48,6 +52,7 @@ export function setupBotHandlers(bot, provider) {
     await sendMainMenu(ctx, t(languageCode, "welcome"));
   });
 
+  // Обработка нажатия на кнопку "Главное меню"
   bot.hears(
     (text, ctx) => text === t(ctx.state.user.language, "main_menu"),
     async (ctx) => {
@@ -55,6 +60,7 @@ export function setupBotHandlers(bot, provider) {
     }
   );
 
+  // Обработка текстовых сообщений
   bot.on("text", async (ctx) => {
     const userId = ctx.from.id;
     const { steps, language } = ctx.state.user;
@@ -67,7 +73,7 @@ export function setupBotHandlers(bot, provider) {
         steps.address = ctx.message.text;
         steps.step = "enter_amount";
         await ctx.deleteMessage(ctx.message.message_id);
-        await saveUserState(userId, { steps });
+        await updateUserState(userId, { steps });
         await sendAndDeletePreviousMessage(
           ctx,
           t(language, "enter_amount"),
@@ -87,7 +93,7 @@ export function setupBotHandlers(bot, provider) {
     } else if (steps.step === "enter_amount") {
       const amount = ctx.message.text;
 
-      // Validate amount
+      // Проверка суммы
       if (amount.toLowerCase() !== "all") {
         const parsedAmount = Number(amount);
         if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -105,7 +111,7 @@ export function setupBotHandlers(bot, provider) {
 
       steps.step = "confirm";
       await ctx.deleteMessage(ctx.message.message_id);
-      await saveUserState(userId, { steps });
+      await updateUserState(userId, { steps });
       await sendAndDeletePreviousMessage(
         ctx,
         t(language, "confirm_send", {
@@ -133,19 +139,20 @@ export function setupBotHandlers(bot, provider) {
             Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
           ])
         );
-        await deleteUserState(userId);
+        await updateUserState(userId, { steps: null });
       } catch (error) {
         await ctx.reply(t(language, "invalid_private_key"));
       }
     }
   });
 
+  // Обработка нажатия на кнопку "Отправить"
   bot.action("send", async (ctx) => {
     const userId = ctx.from.id;
     const language = ctx.state.user.language || "en";
 
     const steps = { step: "enter_address" };
-    await saveUserState(userId, { steps });
+    await updateUserState(userId, { steps });
 
     await sendAndDeletePreviousMessage(
       ctx,
@@ -157,15 +164,16 @@ export function setupBotHandlers(bot, provider) {
     );
   });
 
+  // Обработка подтверждения отправки
   bot.action("confirm_send", async (ctx) => {
     const userId = ctx.from.id;
     const { steps, language } = ctx.state.user;
-  
+
     if (!steps || steps.step !== "confirm") return;
-  
+
     const { address, amount } = steps;
-    await deleteUserState(userId);
-  
+    await updateUserState(userId, { steps: null });
+
     try {
       const encryptedKey = await redis.get(`user:${ctx.from.id}:privkey`);
       if (!encryptedKey) {
@@ -178,16 +186,16 @@ export function setupBotHandlers(bot, provider) {
         );
       }
       let privkey = decrypt(encryptedKey);
-  
+
       const wallet = new quais.Wallet(privkey, provider);
       privkey = null;
       const from = await wallet.getAddress();
-  
-      // Check for pending transactions
+
+      // Проверка на незавершенные транзакции
       const lastTxHash = await redis.get(`user:${ctx.from.id}:lastTxHash`);
       if (lastTxHash) {
         try {
-          await ensureTransactionProcessed(lastTxHash, provider, language); // Pass language here
+          await ensureTransactionProcessed(lastTxHash, provider, language);
         } catch (error) {
           return sendAndDeletePreviousMessage(
             ctx,
@@ -198,13 +206,13 @@ export function setupBotHandlers(bot, provider) {
           );
         }
       }
-  
+
       const balance = await provider.getBalance(from, "latest");
       const feeData = await provider.getFeeData(quais.Shard.Cyprus1);
       const gasPrice = feeData.gasPrice;
       const gasLimit = 100000n;
       const gasCost = gasPrice * gasLimit;
-  
+
       if (balance <= gasCost) {
         return sendAndDeletePreviousMessage(
           ctx,
@@ -214,7 +222,7 @@ export function setupBotHandlers(bot, provider) {
           ])
         );
       }
-  
+
       let valueToSend;
       if (amount.toLowerCase() === "all") {
         valueToSend = balance - gasCost;
@@ -231,66 +239,42 @@ export function setupBotHandlers(bot, provider) {
         }
         valueToSend = parsedAmount;
       }
-  
+
       const txData = {
         from,
         to: address,
         value: valueToSend,
       };
-  
+
       const tx = await wallet.sendTransaction(txData);
-  
-      // Save the new transaction hash
+
+      // Сохранение хэша транзакции
       await redis.set(`user:${ctx.from.id}:lastTxHash`, tx.hash);
-  
-      // Send message with hash and wait for confirmation
+
+      // Отправка сообщения с хэшем транзакции
       const sentMessage = await ctx.replyWithMarkdown(
         t(language, "transaction_sent", { hash: tx.hash })
       );
-  
-      try {
-        // Wait for confirmation
-        const txReceipt = await Promise.race([
-          tx.wait(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("TimeoutError")), 80000)
-          ),
-        ]);
-  
-        // Edit the previously sent message
-        await ctx.telegram.editMessageText(
-          ctx.chat.id,
-          sentMessage.message_id,
-          undefined,
-          t(language, "transaction_confirmed", {
-            amount: quais.formatQuai(valueToSend),
-            address,
-            hash: tx.hash,
-          }),
-          { parse_mode: "Markdown" }
-        );
-      } catch (error) {
-        if (error.message === "TimeoutError") {
-          await ctx.telegram.editMessageText(
-            ctx.chat.id,
-            sentMessage.message_id,
-            undefined,
-            t(language, "transaction_timeout", { hash: tx.hash }),
-            { parse_mode: "Markdown" }
-          );
-        } else {
-          // If other errors occur, send error message in user's language
-          await ctx.reply(t(language, "transaction_error", { error: error.message }));
-        }
-      }
-  
+
+      // Асинхронное ожидание подтверждения транзакции
+      waitForTransactionConfirmation(
+        tx,
+        ctx,
+        sentMessage.message_id,
+        address,
+        valueToSend,
+        language
+      );
+
       await sendMainMenu(ctx);
     } catch (error) {
-      await ctx.reply(t(language, "transaction_error", { error: error.message }));
+      await ctx.reply(
+        t(language, "transaction_error", { error: error.message })
+      );
     }
   });
-  
 
+  // Обработка нажатия на кнопку "Получить"
   bot.action("receive", async (ctx) => {
     try {
       const { language } = ctx.state.user;
@@ -316,6 +300,7 @@ export function setupBotHandlers(bot, provider) {
     }
   });
 
+  // Обработка нажатия на кнопку "Баланс"
   bot.action("balance", async (ctx) => {
     try {
       const { language } = ctx.state.user;
@@ -341,12 +326,13 @@ export function setupBotHandlers(bot, provider) {
     }
   });
 
+  // Обработка нажатия на кнопку "Сохранить ключ"
   bot.action("savekey", async (ctx) => {
     const userId = ctx.from.id;
     const language = ctx.state.user.language || "en";
 
     const steps = { step: "save_key" };
-    await saveUserState(userId, { steps });
+    await updateUserState(userId, { steps });
 
     await sendAndDeletePreviousMessage(
       ctx,
@@ -358,93 +344,145 @@ export function setupBotHandlers(bot, provider) {
     );
   });
 
+  // Обработка нажатия на кнопку "Главное меню"
   bot.action("main_menu", async (ctx) => {
     await sendMainMenu(ctx);
   });
 
-  // Added handler for "Settings" action
+  // Обработка нажатия на кнопку "Настройки"
   bot.action("settings", async (ctx) => {
     await promptLanguageSelection(ctx);
   });
 }
 
+// Функция для отправки главного меню
 async function sendMainMenu(ctx, text = null) {
   const language = ctx.state.user.language || "en";
   const menuText = text || t(language, "choose_action");
   await sendAndDeletePreviousMessage(ctx, menuText, getMainMenu(language));
 }
 
+// Функция для получения клавиатуры главного меню
 function getMainMenu(language) {
   return Markup.inlineKeyboard([
     [Markup.button.callback(t(language, "send"), "send")],
     [Markup.button.callback(t(language, "receive"), "receive")],
     [Markup.button.callback(t(language, "balance"), "balance")],
     [Markup.button.callback(t(language, "save_key"), "savekey")],
-    [Markup.button.callback(t(language, "settings"), "settings")], // Added Settings button
+    [Markup.button.callback(t(language, "settings"), "settings")],
   ]);
 }
 
+// Функция для запроса выбора языка
 async function promptLanguageSelection(ctx) {
   const language = ctx.state.user.language || "en";
   const languageKeyboard = Markup.inlineKeyboard([
     [Markup.button.callback("English", "language_en")],
     [Markup.button.callback("Русский", "language_ru")],
     [Markup.button.callback("中文", "language_zh")],
-    [Markup.button.callback(t(language, "back"), "main_menu")], // Added Back button
+    [Markup.button.callback(t(language, "back"), "main_menu")],
   ]);
   await ctx.reply(t(language, "select_language"), languageKeyboard);
 }
 
-async function sendAndDeletePreviousMessage(ctx, text, keyboard = null, edit = false) {
+// Функция для отправки сообщения и удаления предыдущего
+async function sendAndDeletePreviousMessage(
+  ctx,
+  text,
+  keyboard = null,
+  edit = false
+) {
   const userId = ctx.from.id;
   const { messageId } = ctx.state.user;
-  const userMessagesKey = `user:${userId}:message`;
 
   try {
-    // Delete previous message if exists
+    // Удаление предыдущего сообщения
     if (messageId) {
       try {
         await ctx.deleteMessage(messageId);
-        await redis.del(userMessagesKey);
       } catch (error) {
-        if (error.response && error.response.error_code === 400) {
-          console.warn("Message already deleted or not found.");
-        } else {
-          console.error("Error deleting message:", error.message);
-        }
+        console.error("Ошибка при удалении сообщения:", error.message);
       }
     }
 
-    // Send or edit message
+    // Отправка или редактирование сообщения
     let newMessage;
     if (edit) {
       try {
         newMessage = await ctx.editMessageText(text, keyboard);
       } catch (error) {
-        console.error("Error editing message, sending new one:", error.message);
+        console.error("Ошибка при редактировании сообщения:", error.message);
         newMessage = await ctx.reply(text, keyboard);
       }
     } else {
       newMessage = await ctx.reply(text, keyboard);
     }
 
-    // Save new message ID
+    // Сохранение ID нового сообщения
     if (newMessage && newMessage.message_id) {
-      await saveUserState(userId, { messageId: newMessage.message_id });
+      await updateUserState(userId, { messageId: newMessage.message_id });
     }
   } catch (error) {
-    console.error("Error in sendAndDeletePreviousMessage:", error.message);
+    console.error("Ошибка в sendAndDeletePreviousMessage:", error.message);
   }
 }
 
+// Функция для проверки состояния транзакции
 async function ensureTransactionProcessed(txHash, provider, language) {
-    const receipt = await provider.getTransactionReceipt(txHash);
-    if (!receipt) {
-      throw new Error(t(language, "previous_transaction_pending"));
-    }
-    if (receipt.status === 0) {
-      throw new Error(t(language, "previous_transaction_failed"));
-    }
-    return receipt;
+  const receipt = await provider.getTransactionReceipt(txHash);
+  if (!receipt) {
+    throw new Error(t(language, "previous_transaction_pending"));
   }
-  
+  if (receipt.status === 0) {
+    throw new Error(t(language, "previous_transaction_failed"));
+  }
+  return receipt;
+}
+
+// Функция для обновления состояния пользователя с сохранением языка
+async function updateUserState(userId, newPartialState) {
+  const userState = await loadUserState(userId);
+  const updatedState = { ...userState, ...newPartialState };
+  await saveUserState(userId, updatedState);
+}
+
+// Функция для асинхронного ожидания подтверждения транзакции
+async function waitForTransactionConfirmation(
+  tx,
+  ctx,
+  messageId,
+  address,
+  valueToSend,
+  language
+) {
+  try {
+    const txReceipt = await tx.wait();
+
+    // Обновление сообщения после подтверждения
+    await ctx.telegram.editMessageText(
+      ctx.chat.id,
+      messageId,
+      undefined,
+      t(language, "transaction_confirmed", {
+        amount: quais.formatQuai(valueToSend),
+        address,
+        hash: tx.hash,
+      }),
+      { parse_mode: "Markdown" }
+    );
+  } catch (error) {
+    if (error.message === "TimeoutError") {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        messageId,
+        undefined,
+        t(language, "transaction_timeout", { hash: tx.hash }),
+        { parse_mode: "Markdown" }
+      );
+    } else {
+      await ctx.reply(
+        t(language, "transaction_error", { error: error.message })
+      );
+    }
+  }
+}

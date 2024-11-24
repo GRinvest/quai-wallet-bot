@@ -2,6 +2,12 @@ import Redis from "ioredis";
 
 const redis = new Redis();
 
+export async function loadUserLanguage(userId) {
+    const key = `user:${userId}:language`;
+    const language = await redis.mget(key);
+    return language || "en";
+  }
+
 export async function loadUserState(userId) {
   const keys = [
     `user:${userId}:steps`,
@@ -12,7 +18,7 @@ export async function loadUserState(userId) {
   return {
     steps: steps ? JSON.parse(steps) : null,
     messageId: messageId ? parseInt(messageId, 10) : null,
-    language: language || "en",
+    language: language,
   };
 }
 
