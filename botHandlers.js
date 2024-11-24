@@ -399,7 +399,6 @@ async function sendAndDeletePreviousMessage(ctx, text, keyboard = null, edit = f
   const userId = ctx.from.id;
   const { messageId } = ctx.state.user;
   const userMessagesKey = `user:${userId}:message`;
-  const language = ctx.state.user.language || "en";
 
   try {
     // Delete previous message if exists
