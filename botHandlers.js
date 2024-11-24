@@ -135,7 +135,7 @@ export function setupBotHandlers(bot, provider) {
         }),
         Markup.inlineKeyboard([
           Markup.button.callback(t(language, "confirm"), "confirm_send"),
-          Markup.button.callback(t(language, "back"), "enter_amount"),
+          Markup.button.callback(t(language, "back"), "send"),
         ])
       );
     } else if (steps.step === "save_key") {
