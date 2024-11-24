@@ -89,21 +89,25 @@ export function setupBotHandlers(bot, provider) {
       }
     } else if (steps.step === "enter_amount") {
       const amount = ctx.message.text;
-
+      let amount_msg = "0";
       // Проверка суммы
       if (amount.toLowerCase() !== "all") {
         const parsedAmount = Number(amount);
         if (isNaN(parsedAmount) || parsedAmount <= 0) {
-          return ctx.reply(
+          return sendAndDeletePreviousMessage(
+            ctx,
             t(language, "invalid_amount"),
             Markup.inlineKeyboard([
-              Markup.button.callback(t(language, "back"), "enter_address"),
-            ])
+                Markup.button.callback(t(language, "back"), "enter_address"),
+              ])
           );
         }
         steps.amount = parsedAmount.toString();
+        amount_msg = parsedAmount.toString();
       } else {
         steps.amount = "all";
+        const balance = await provider.getBalance(from, "latest");
+        amount_msg = quais.formatQuai(balance).toString();
       }
 
       steps.step = "confirm";
@@ -112,7 +116,7 @@ export function setupBotHandlers(bot, provider) {
       await sendAndDeletePreviousMessage(
         ctx,
         t(language, "confirm_send", {
-          amount: steps.amount,
+          amount: amount_msg,
           address: steps.address,
         }),
         Markup.inlineKeyboard([
