@@ -98,15 +98,29 @@ export function setupBotHandlers(bot, provider) {
             ctx,
             t(language, "invalid_amount"),
             Markup.inlineKeyboard([
-                Markup.button.callback(t(language, "back"), "enter_address"),
-              ])
+              Markup.button.callback(t(language, "back"), "enter_address"),
+            ])
           );
         }
         steps.amount = parsedAmount.toString();
         amount_msg = parsedAmount.toString();
       } else {
         steps.amount = "all";
-        const balance = await provider.getBalance(steps.address, "latest");
+        const encryptedKey = await redis.get(`user:${ctx.from.id}:privkey`);
+        if (!encryptedKey) {
+          return sendAndDeletePreviousMessage(
+            ctx,
+            t(language, "no_private_key"),
+            Markup.inlineKeyboard([
+              Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
+            ])
+          );
+        }
+        let privkey = decrypt(encryptedKey);
+        const wallet = new quais.Wallet(privkey, provider);
+        privkey = null;
+        const from = await wallet.getAddress();
+        const balance = await provider.getBalance(from, "latest");
         amount_msg = quais.formatQuai(balance).toString();
       }
 
@@ -121,7 +135,7 @@ export function setupBotHandlers(bot, provider) {
         }),
         Markup.inlineKeyboard([
           Markup.button.callback(t(language, "confirm"), "confirm_send"),
-          Markup.button.callback(t(language, "back"), "send"),
+          Markup.button.callback(t(language, "back"), "enter_amount"),
         ])
       );
     } else if (steps.step === "save_key") {
@@ -143,12 +157,12 @@ export function setupBotHandlers(bot, provider) {
         await updateUserState(userId, { steps: null });
       } catch (error) {
         await sendAndDeletePreviousMessage(
-            ctx,
-            t(language, "invalid_private_key"),
-            Markup.inlineKeyboard([
-              Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
-            ])
-          );
+          ctx,
+          t(language, "invalid_private_key"),
+          Markup.inlineKeyboard([
+            Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
+          ])
+        );
       }
     }
   });
@@ -389,7 +403,11 @@ async function promptLanguageSelection(ctx) {
     [Markup.button.callback("中文", "language_zh")],
     [Markup.button.callback(t(language, "back"), "main_menu")],
   ]);
-  await sendAndDeletePreviousMessage(ctx, t(language, "select_language"), languageKeyboard);
+  await sendAndDeletePreviousMessage(
+    ctx,
+    t(language, "select_language"),
+    languageKeyboard
+  );
 }
 
 // Функция для отправки сообщения и удаления предыдущего
