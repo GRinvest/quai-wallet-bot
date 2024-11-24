@@ -213,7 +213,7 @@ export function setupBotHandlers(bot, provider) {
       const from = await wallet.getAddress();
 
       // Проверка на незавершенные транзакции
-      const lastTxHash = await redis.get(`user:${ctx.from.id}:lastTxHash`);
+      const lastTxHash = await redis.get(`user:${ctx.from.id}:${from}:lastTxHash`);
       if (lastTxHash) {
         try {
           await ensureTransactionProcessed(lastTxHash, provider, language);
@@ -270,7 +270,7 @@ export function setupBotHandlers(bot, provider) {
       const tx = await wallet.sendTransaction(txData);
 
       // Сохранение хэша транзакции
-      await redis.set(`user:${ctx.from.id}:lastTxHash`, tx.hash);
+      await redis.set(`user:${ctx.from.id}:${from}:lastTxHash`, tx.hash);
 
       // Отправка сообщения с хэшем транзакции
       const sentMessage = await ctx.replyWithMarkdown(
