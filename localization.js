@@ -11,21 +11,24 @@ const messages = {
     main_menu: "🏠 Main Menu",
     enter_address: "Please enter the address to send to:",
     invalid_address: "Invalid address. Please try again.",
-    enter_amount: 'Enter the amount to send (or "all" to send the full balance):',
-    invalid_amount: 'Invalid amount. Please enter a positive number or "all". Try again.',
+    enter_amount:
+      'Enter the amount to send (or "all" to send the full balance):',
+    invalid_amount:
+      'Invalid amount. Please enter a positive number or "all". Try again.',
     confirm_send: "Confirm sending {amount} Quai to {address}.",
     confirm: "✅ Confirm",
     settings: "⚙️ Settings",
     back: "⬅️ Back",
     to_main_menu: "⬅️ To Main Menu",
     transaction_sent:
-    "✈️ Transaction sent.\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ Waiting for confirmation...",
+      "✈️ Transaction sent.\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n⏳ Waiting for confirmation...",
     transaction_confirmed:
-    "🎉 You have successfully sent: {amount} QUAI to address {address}\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ Transaction confirmed.",
+      "🎉 You have successfully sent: {amount} QUAI to address {address}\n\n🔗 Hash: [{hash}](https://quaiscan.io/tx/{hash})\n\n✅ Transaction confirmed.",
     transaction_timeout:
       "⚠️ Confirmation timeout. Please check the transaction status manually:\n\n🔗 [Check Transaction](https://quaiscan.io/tx/{hash})",
     transaction_error: "Error sending transaction: {error}",
-    previous_transaction_pending: "The previous transaction is still pending. Please wait until it is confirmed.",
+    previous_transaction_pending:
+      "The previous transaction is still pending. Please wait until it is confirmed.",
     previous_transaction_failed: "The previous transaction failed.",
     no_private_key:
       "Your private key was not found. Please save it using the /savekey command.",
@@ -43,6 +46,11 @@ const messages = {
     language_selected: "Language selected: {language}",
     select_language: "Please select your language:",
     invalid_private_key: "Invalid private key. Please try again.",
+    delete_key: "Delete Key",
+    confirm_delete_key:
+      "Are you sure you want to delete your private key associated with address {address}?",
+    cancel: "❌ Cancel",
+    private_key_deleted: "Your private key has been deleted.",
   },
   ru: {
     welcome: "Добро пожаловать! Пожалуйста, выберите действие:",
@@ -54,8 +62,10 @@ const messages = {
     main_menu: "🏠 Главное меню",
     enter_address: "Пожалуйста, введите адрес для отправки:",
     invalid_address: "Неверный адрес. Пожалуйста, попробуйте снова.",
-    enter_amount: 'Введите сумму для отправки (или "all", чтобы отправить весь баланс):',
-    invalid_amount: 'Недопустимая сумма. Введите положительное число или "all". Попробуйте снова.',
+    enter_amount:
+      'Введите сумму для отправки (или "all", чтобы отправить весь баланс):',
+    invalid_amount:
+      'Недопустимая сумма. Введите положительное число или "all". Попробуйте снова.',
     confirm_send: "Подтвердите отправку {amount} Quai на адрес {address}.",
     confirm: "✅ Подтвердить",
     settings: "⚙️ Настройки",
@@ -68,7 +78,8 @@ const messages = {
     transaction_timeout:
       "⚠️ Время ожидания подтверждения истекло. Пожалуйста, проверьте статус транзакции вручную:\n\n🔗 [Проверить транзакцию](https://quaiscan.io/tx/{hash})",
     transaction_error: "Ошибка при отправке транзакции: {error}",
-    previous_transaction_pending: "Предыдущая транзакция все еще обрабатывается. Пожалуйста, дождитесь ее подтверждения.",
+    previous_transaction_pending:
+      "Предыдущая транзакция все еще обрабатывается. Пожалуйста, дождитесь ее подтверждения.",
     previous_transaction_failed: "Предыдущая транзакция не удалась.",
     no_private_key:
       "Ваш приватный ключ не найден. Пожалуйста, сохраните его с помощью команды /savekey.",
@@ -85,10 +96,16 @@ const messages = {
     error: "Ошибка: {error}",
     language_selected: "Выбран язык: {language}",
     select_language: "Пожалуйста, выберите ваш язык:",
-    invalid_private_key: "Недействительный приватный ключ. Пожалуйста, попробуйте снова.",
-},
+    invalid_private_key:
+      "Недействительный приватный ключ. Пожалуйста, попробуйте снова.",
+    delete_key: "Удалить ключ",
+    confirm_delete_key:
+      "Вы уверены, что хотите удалить приватный ключ, связанный с адресом {address}?",
+    cancel: "❌ Отмена",
+    private_key_deleted: "Ваш приватный ключ был удален.",
+  },
 
-zh: {
+  zh: {
     welcome: "欢迎！请选择一个操作：",
     choose_action: "请选择一个操作：",
     send: "📤 发送",
@@ -114,31 +131,31 @@ zh: {
     transaction_error: "发送交易时出错：{error}",
     previous_transaction_pending: "上一笔交易仍在处理中。请等待确认。",
     previous_transaction_failed: "上一笔交易失败。",
-    no_private_key:
-      "未找到您的私钥。请使用 /savekey 命令保存它。",
+    no_private_key: "未找到您的私钥。请使用 /savekey 命令保存它。",
     private_key_saved: "您的密钥已保存。地址：{address}",
     enter_private_key: "请输入您的私钥：",
     balance_amount: "您的余额：{balance} QUAI",
     your_address: "您的地址：{address}",
     insufficient_funds: "资金不足以支付燃气费。",
-    insufficient_funds_amount:
-      "资金不足以支付指定金额和燃气费。",
-    previous_transaction_pending:
-      "上一笔交易仍在处理中。请等待其确认。",
+    insufficient_funds_amount: "资金不足以支付指定金额和燃气费。",
+    previous_transaction_pending: "上一笔交易仍在处理中。请等待其确认。",
     previous_transaction_failed: "上一笔交易失败。",
     error: "错误：{error}",
     language_selected: "已选择语言：{language}",
     select_language: "请选择您的语言：",
     invalid_private_key: "无效的私钥。请重试。",
-},
-
+    delete_key: "删除密钥",
+    confirm_delete_key: "您确定要删除与地址 {address} 关联的私钥吗？",
+    cancel: "❌ 取消",
+    private_key_deleted: "您的私钥已被删除。",
+  },
 };
 
 export function t(language, key, params = {}) {
-    let msg = messages[language][key] || messages["en"][key] || key;
-    for (const [param, value] of Object.entries(params)) {
-      const regex = new RegExp(`{${param}}`, 'g'); // Global replacement
-      msg = msg.replace(regex, value);
-    }
-    return msg;
+  let msg = messages[language][key] || messages["en"][key] || key;
+  for (const [param, value] of Object.entries(params)) {
+    const regex = new RegExp(`{${param}}`, "g"); // Global replacement
+    msg = msg.replace(regex, value);
   }
+  return msg;
+}

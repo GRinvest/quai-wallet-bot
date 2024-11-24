@@ -24,7 +24,6 @@ export function setupBotHandlers(bot, provider) {
 
   // Команда /start
   bot.start(async (ctx) => {
-    const userId = ctx.from.id;
     const userState = ctx.state.user;
 
     if (!userState.language) {
@@ -374,6 +373,66 @@ export function setupBotHandlers(bot, provider) {
   bot.action("settings", async (ctx) => {
     await promptLanguageSelection(ctx);
   });
+
+  // Обработка нажатия на кнопку "Удалить ключ"
+  bot.action("deletekey", async (ctx) => {
+    const userId = ctx.from.id;
+    const language = ctx.state.user.language || "en";
+  
+    const encryptedKey = await redis.get(`user:${userId}:privkey`);
+    if (!encryptedKey) {
+      return sendAndDeletePreviousMessage(
+        ctx,
+        t(language, "no_private_key"),
+        Markup.inlineKeyboard([
+          Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
+        ])
+      );
+    }
+  
+    let privkey = decrypt(encryptedKey);
+    const wallet = new quais.Wallet(privkey, provider);
+    privkey = null;
+    const address = await wallet.getAddress();
+  
+    // Сохраняем шаг подтверждения удаления ключа
+    const steps = { step: "confirm_delete_key", address };
+    await updateUserState(userId, { steps });
+  
+    await sendAndDeletePreviousMessage(
+      ctx,
+      t(language, "confirm_delete_key", { address }),
+      Markup.inlineKeyboard([
+        Markup.button.callback(t(language, "confirm"), "confirm_deletekey"),
+        Markup.button.callback(t(language, "cancel"), "main_menu"),
+      ])
+    );
+  });
+  
+  bot.action("confirm_deletekey", async (ctx) => {
+    const userId = ctx.from.id;
+    const language = ctx.state.user.language || "en";
+  
+    const { steps } = ctx.state.user;
+    if (!steps || steps.step !== "confirm_delete_key") {
+      return;
+    }
+  
+    // Удаляем приватный ключ из Redis
+    await redis.del(`user:${userId}:privkey`);
+  
+    await sendAndDeletePreviousMessage(
+      ctx,
+      t(language, "private_key_deleted"),
+      Markup.inlineKeyboard([
+        Markup.button.callback(t(language, "to_main_menu"), "main_menu"),
+      ])
+    );
+  
+    // Очищаем шаги
+    await updateUserState(userId, { steps: null });
+  });
+  
 }
 
 // Функция для отправки главного меню
@@ -389,7 +448,10 @@ function getMainMenu(language) {
     [Markup.button.callback(t(language, "send"), "send")],
     [Markup.button.callback(t(language, "receive"), "receive")],
     [Markup.button.callback(t(language, "balance"), "balance")],
-    [Markup.button.callback(t(language, "save_key"), "savekey")],
+    [
+        Markup.button.callback(t(language, "save_key"), "savekey"),
+        Markup.button.callback(t(language, "delete_key"), "deletekey"),
+    ],
     [Markup.button.callback(t(language, "settings"), "settings")],
   ]);
 }
